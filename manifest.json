@@ -2,10 +2,10 @@
   "namespace": "QNCNXW8R",
   "name": "FindRemainingValuables",
   "description": "Reveal the last few items on the map. Configurable.",
-  "version_number": "1.0.0",
+  "version_number": "1.1.0",
   "dependencies": [
     "BepInEx-BepInExPack-5.4.2100"
   ],
-  "website_url": "",
+  "website_url": "https://github.com/QNCNXW8R/FindRemainingValuables",
   "FullName": "QNCNXW8R-FindRemainingValuables"
 }
