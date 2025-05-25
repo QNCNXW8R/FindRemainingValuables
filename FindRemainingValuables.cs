@@ -5,6 +5,8 @@ using HarmonyLib;
 using System.Collections;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.SceneManagement;
+using TMPro;
 
 namespace FindRemainingValuables;
 
@@ -15,6 +17,9 @@ public class FindRemainingValuables : BaseUnityPlugin
     internal new static ManualLogSource Logger => Instance._logger;
     private ManualLogSource _logger => base.Logger;
     internal Harmony? Harmony { get; set; }
+
+    private bool sceneReady = false;
+    private bool hasRevealedThisScene = false;
 
     // Config entries
     public static ConfigEntry<float>? RevealThreshold;
@@ -65,6 +70,7 @@ public class FindRemainingValuables : BaseUnityPlugin
         this.gameObject.hideFlags = HideFlags.HideAndDontSave;
 
         Patch();
+        SceneManager.sceneLoaded += OnSceneLoaded;
 
         Logger.LogInfo($"{Info.Metadata.GUID} v{Info.Metadata.Version} has loaded!");
     }
@@ -81,12 +87,23 @@ public class FindRemainingValuables : BaseUnityPlugin
         Harmony?.UnpatchSelf();
     }
 
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        sceneReady = true;
+        hasRevealedThisScene = false;
+        // hasRevealedThisScene = !(SemiFunc.RunIsLobby() || SemiFunc.RunIsShop() || SemiFunc.RunIsArena());
+    }
+
     internal void Update()
     {
+        if (!sceneReady || hasRevealedThisScene)
+            return;
+
         if (RevealKeybind.Value.IsDown())
         {
             Logger.LogInfo("Force reveal triggered by keybind");
             ForceReveal();
+            // hasRevealedThisScene = true;
         }
     }
 
@@ -131,17 +148,75 @@ public class FindRemainingValuables : BaseUnityPlugin
             }
         }
     }
-
     internal void ForceReveal()
     {
+        if (hasRevealedThisScene) return;
+        hasRevealedThisScene = true;
         var valuables = Object.FindObjectsOfType<ValuableObject>();
+
         foreach (var valuable in valuables)
         {
             if (!valuable.discovered)
             {
                 valuable.Discover(ValuableDiscoverGraphic.State.Discover);
-                Logger.LogInfo("Revealed valuables.");
             }
         }
+
+        float remaining = valuables
+            .Where(v => !v.discovered)
+            .Sum(v => v.dollarValueCurrent);
+
+        PlayNotificationSound();
+        ShowHaulMessage($"Valuables Revealed! ${Mathf.RoundToInt(remaining)} Left!");
+        Logger.LogInfo("Revealed valuables.");
+    }
+
+    public void PlayNotificationSound()
+    {
+        var clip = Resources.FindObjectsOfTypeAll<AudioClip>()
+            .FirstOrDefault(c => c.name.Equals("valuable tracker target found"));
+        if (clip != null)
+        {
+            Vector3 position = Camera.main != null ? Camera.main.transform.position : Vector3.zero;
+            Logger.LogInfo($"Playing Audio: {clip.name}");
+            AudioSource.PlayClipAtPoint(clip, position);
+        }
+        else
+        {
+            Logger.LogWarning("AudioClip 'valuable tracker target found' not found.");
+        }
+    }
+
+    private void ShowHaulMessage(string message, float duration = 2f)
+    {
+        if (HaulUI.instance == null)
+        {
+            Logger.LogWarning("HaulUI.instance not found.");
+            return;
+        }
+
+        var haulUI = HaulUI.instance;
+
+        // Disable the Update() loop temporarily
+        haulUI.enabled = false;
+
+        // Get the private Text field
+        var textField = AccessTools.Field(typeof(HaulUI), "Text").GetValue(haulUI) as TextMeshProUGUI;
+        if (textField != null)
+        {
+            textField.text = message;
+        }
+
+        haulUI.SemiUITextFlashColor(Color.yellow, duration);
+        haulUI.SemiUISpringShakeY(2f, 4f, 1f);
+
+        // Re-enable after delay
+        haulUI.StartCoroutine(EnableHaulUIAfterDelay(haulUI, duration));
+    }
+
+    private IEnumerator EnableHaulUIAfterDelay(HaulUI ui, float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        ui.enabled = true; // Reactivates Update() so it resumes showing $X / $Y
     }
 }

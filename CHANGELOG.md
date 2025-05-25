@@ -10,3 +10,10 @@
 - Add toggle for threshold to be based on one extraction point vs the whole level (default: Level)
 - Add toggle for debug logging (default: false)
 - Add keybind to instantly trigger the reveal. Incompatible with the RepoConfig, but can be edited from the file or r2modman etc (default: F10)
+
+## Minor Update - 1.2.0
+
+- No longer keeps checking after revealing valuables
+- Displays a notification in Haul UI when revealing valuables
+- Plays the "found valuable" sound even if no valuables are nearby
+- Cleaned up logger spam

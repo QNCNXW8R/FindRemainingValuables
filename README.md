@@ -22,3 +22,11 @@ At the time of writing this, the ingame mod menu [RepoConfig](https://thundersto
 ### Debug
 
 - "EnableLogging": If true, prints debug data to console (default: false)
+
+## Developer Contact
+
+Report bugs, suggest features, or provide feedback:
+
+| Discord Server          | Channel        | Post    |
+|-------------------------|----------------|---------|
+| [R.E.P.O. Modding Server](https://discord.com/invite/vPJtKhYAFe) | #released-mods | [FindRemainingValuables](https://discord.com/channels/1344557689979670578/1375885607720718416/1375885607720718416) |
