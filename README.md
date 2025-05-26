@@ -15,8 +15,9 @@ Tired of running in circles wondering if there are any more items left? No more!
 
 ### Controls
 
-At the time of writing this, the ingame mod menu [RepoConfig](https://thunderstore.io/c/repo/p/nickklmao/REPOConfig/) does not support keybinds, so this section is hidden. You can still edit it from the config file or from another config editor such as r2modman.
+At the time of writing this, the ingame mod menu [RepoConfig](https://thunderstore.io/c/repo/p/nickklmao/REPOConfig/) does not support keybinds, so only "EnableKeybinds" is visible. You can still edit the keybinds from the config file or from another config editor such as r2modman.
 
+- "EnableKeybinds": If true, enables hotkeys (default: true)
 - "RevealKeybind": Key to press to reveal all remaining valuables (default: F10)
 
 ### Debug

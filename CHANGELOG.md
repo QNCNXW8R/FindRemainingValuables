@@ -17,3 +17,8 @@
 - Displays a notification in Haul UI when revealing valuables
 - Plays the "found valuable" sound even if no valuables are nearby
 - Cleaned up logger spam
+
+## Patch - 1.2.1
+
+- Fix Level goal setting to properly count finished extractions as progress
+- Add toggle to enable hotkeys (default: true)

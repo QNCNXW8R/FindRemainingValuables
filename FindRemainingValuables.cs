@@ -24,6 +24,7 @@ public class FindRemainingValuables : BaseUnityPlugin
     // Config entries
     public static ConfigEntry<float>? RevealThreshold;
     public static ConfigEntry<string>? GoalType;
+    public static ConfigEntry<bool>? EnableHotkeys;
     public static ConfigEntry<KeyboardShortcut>? RevealKeybind;
     public static ConfigEntry<bool>? EnableLogging;
 
@@ -49,6 +50,13 @@ public class FindRemainingValuables : BaseUnityPlugin
                 "Which goal to use when calculating reveal threshold: Extraction or Level",
                 new AcceptableValueList<string>("Extraction", "Level")
             )
+        );
+
+        EnableHotkeys = Config.Bind(
+            "Controls",
+            "EnableHotkeys",
+            true,
+            "If true, enables hotkeys"
         );
 
         RevealKeybind = Config.Bind(
@@ -99,7 +107,9 @@ public class FindRemainingValuables : BaseUnityPlugin
         if (!sceneReady || hasRevealedThisScene)
             return;
 
-        if (RevealKeybind.Value.IsDown())
+        if (EnableHotkeys.Value &&
+            RevealKeybind.Value.MainKey != KeyCode.None &&
+            RevealKeybind.Value.IsDown())
         {
             Logger.LogInfo("Force reveal triggered by keybind");
             ForceReveal();
@@ -119,9 +129,27 @@ public class FindRemainingValuables : BaseUnityPlugin
 
             float currentHaul = director.currentHaul;
             int goal;
+
             if (GoalType.Value == "Level")
             {
                 goal = director.haulGoal;
+                
+                int totalPoints = director.extractionPoints;
+                int completedPoints = director.extractionPointsCompleted;
+
+                if (totalPoints > 0 && director.extractionPointList != null)
+                {
+                    float goalPerPoint = (float)director.haulGoal / totalPoints;
+
+                    foreach (GameObject pointObj in director.extractionPointList)
+                    {
+                        ExtractionPoint point = pointObj.GetComponent<ExtractionPoint>();
+                        if (point != null && point.currentState == ExtractionPoint.State.Complete)
+                        {
+                            currentHaul += goalPerPoint;
+                        }
+                    }
+                }
             }
             else
             {
@@ -148,6 +176,7 @@ public class FindRemainingValuables : BaseUnityPlugin
             }
         }
     }
+
     internal void ForceReveal()
     {
         if (hasRevealedThisScene) return;
