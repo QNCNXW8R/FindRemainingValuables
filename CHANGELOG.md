@@ -22,3 +22,13 @@
 
 - Fix Level goal setting to properly count finished extractions as progress
 - Add toggle to enable hotkeys (default: true)
+
+## Major Update - 2.0.0
+
+- Rework GoalTypes options to ExtractionGoal, LevelGoal, LevelLoot, Extractions (default: LevelLoot)
+- Add new TrackingMethod options Haul or Discovery (default: Haul)
+- Trigger the reveal notification if somebody else has revealed everything
+- Update default threshold to 0.1
+- With the new default configuration, valuables will be revealed when 90% of everything on the level is collected, independent of any extraction goals for a more consistent experience.
+- Fix reveal logic to show correct value of revealed valuables
+- Add some example configurations to the readme

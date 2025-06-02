@@ -3,15 +3,30 @@
 Tired of running in circles wondering if there are any more items left? No more! This mod adds a configurable threshold for leftover items, after which they will become visible on the map.
 
 ## Features
-- When the remaining items outside the extraction point are under half the value of the goal, reveal every item on the map.
-- Configurable threshold
+- When the remaining items are under a threshold, reveal every item on the map.
+- Fully configurable
 
 ## Configuration
 
 ### General
 
-- "RevealThreshold": Proportion of goal remaining before revealing all valuables. 0 is never, 4 is always (default: 0.5)
-- "GoalType": Which goal to use when calculating reveal threshold: Extraction or Level (default: Level)
+- "RevealThreshold": Proportion of goal remaining before revealing all valuables: 0 is never, 1 is always in LevelLoot mode, 4 is probably always in other modes (default: 0.1)
+- "TrackingMethod: Method to track progress towards the threshold: Haul or Discovery (default: Haul)
+- "GoalType": Which goal to use when calculating reveal threshold: ExtractionGoal, LevelGoal, LevelLoot, Extractions (default: LevelLoot)
+
+#### Examples
+
+Here are some example configurations and the resulting behaviour:
+
+| RevealThreshold | TrackingMethod | GoalType | Behaviour |
+| - | - | - | - |
+| 0.5 | Haul | ExtractionGoal | Reveal everything when the ungathered loot is less than half the goal of a single extraction point. Fairly easy on the first level, but gets much stricter as you progress. |
+| 0.1 | Discovery | LevelGoal | Reveal everything when the undiscovered loot is less than a tenth of the goal of the entire level. This requires finding all but one or two items on the first level, but gets a bit easier on later levels. |
+| 0.2 | Discovery | LevelLoot | Reveal everything once you've seen 80% of the loot on the level. Consistent between big and small levels.
+| 0 ~ 0.99 | N/A | Extractions | Reveal everything when all the extractions are finished. Probably not very helpful. |
+| 2 ~ 2.99 | N/A | Extractions | Reveal everything when there are only two extraction points left. This means immediately in the first few levels. |
+| 4 | N/A | N/A | Reveal everything immediately |
+
 
 ### Controls
 
@@ -28,6 +43,6 @@ At the time of writing this, the ingame mod menu [RepoConfig](https://thundersto
 
 Report bugs, suggest features, or provide feedback:
 
-| Discord Server          | Channel        | Post    |
-|-------------------------|----------------|---------|
+| Discord Server | Channel | Post |
+|-|-|-|
 | [R.E.P.O. Modding Server](https://discord.com/invite/vPJtKhYAFe) | #released-mods | [FindRemainingValuables](https://discord.com/channels/1344557689979670578/1375885607720718416/1375885607720718416) |

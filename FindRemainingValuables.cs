@@ -10,7 +10,7 @@ using TMPro;
 
 namespace FindRemainingValuables;
 
-[BepInPlugin("QNCNXW8R.FindRemainingValuables", "FindRemainingValuables", "1.0")]
+[BepInPlugin("QNCNXW8R.FindRemainingValuables", "FindRemainingValuables", "2.0.0")]
 public class FindRemainingValuables : BaseUnityPlugin
 {
     internal static FindRemainingValuables Instance { get; private set; } = null!;
@@ -20,9 +20,11 @@ public class FindRemainingValuables : BaseUnityPlugin
 
     private bool sceneReady = false;
     private bool hasRevealedThisScene = false;
+    private float previousRemainingValue = -1f;
 
     // Config entries
     public static ConfigEntry<float>? RevealThreshold;
+    public static ConfigEntry<string>? TrackingMethod;
     public static ConfigEntry<string>? GoalType;
     public static ConfigEntry<bool>? EnableHotkeys;
     public static ConfigEntry<KeyboardShortcut>? RevealKeybind;
@@ -35,20 +37,30 @@ public class FindRemainingValuables : BaseUnityPlugin
         RevealThreshold = Config.Bind(
             "General",
             "RevealThreshold",
-            0.5f,
+            0.1f,
             new ConfigDescription(
-                "Proportion of goal remaining before revealing all valuables: 0 is never, 4 is (probably) always",
+                "Proportion of goal remaining before revealing all valuables: 0 is never, 1 is always in LevelLoot mode, 4 is probably always in other modes",
                 new AcceptableValueRange<float>(0f, 4f) // Ensuring the range is between 0 and 4.
+            )
+        );
+
+        TrackingMethod = Config.Bind(
+            "General",
+            "TrackingMethod",
+            "Haul",
+            new ConfigDescription(
+                "Method to track progress towards the threshold",
+                new AcceptableValueList<string>("Haul", "Discovery")
             )
         );
 
         GoalType = Config.Bind(
             "General",
             "GoalType",
-            "Level",
+            "LevelLoot",
             new ConfigDescription(
-                "Which goal to use when calculating reveal threshold: Extraction or Level",
-                new AcceptableValueList<string>("Extraction", "Level")
+                "Which goal to use when calculating reveal threshold: ExtractionGoal, LevelGoal, LevelLoot, Extractions",
+                new AcceptableValueList<string>("ExtractionGoal", "LevelGoal", "LevelLoot", "Extractions")
             )
         );
 
@@ -99,7 +111,6 @@ public class FindRemainingValuables : BaseUnityPlugin
     {
         sceneReady = true;
         hasRevealedThisScene = false;
-        // hasRevealedThisScene = !(SemiFunc.RunIsLobby() || SemiFunc.RunIsShop() || SemiFunc.RunIsArena());
     }
 
     internal void Update()
@@ -113,7 +124,6 @@ public class FindRemainingValuables : BaseUnityPlugin
         {
             Logger.LogInfo("Force reveal triggered by keybind");
             ForceReveal();
-            // hasRevealedThisScene = true;
         }
     }
 
@@ -124,16 +134,22 @@ public class FindRemainingValuables : BaseUnityPlugin
             yield return new WaitForSeconds(5f);
 
             RoundDirector director = Object.FindObjectOfType<RoundDirector>();
-            if (director == null)
+            if (director == null || !SemiFunc.RunIsLevel())
                 continue;
+
+            float undiscoveredValue = Object.FindObjectsOfType<ValuableObject>().Where(v => !v.discovered).Sum(v => v.dollarValueCurrent);
+            if (undiscoveredValue == 0f && previousRemainingValue > 0)
+            {
+                ForceReveal();
+            }
 
             float currentHaul = director.currentHaul;
             int goal;
 
-            if (GoalType.Value == "Level")
+            if (GoalType.Value == "LevelGoal")
             {
                 goal = director.haulGoal;
-                
+
                 int totalPoints = director.extractionPoints;
                 int completedPoints = director.extractionPointsCompleted;
 
@@ -151,20 +167,40 @@ public class FindRemainingValuables : BaseUnityPlugin
                     }
                 }
             }
-            else
+            else if (GoalType.Value == "ExtractionGoal")
             {
                 goal = director.extractionHaulGoal;
+            }
+            else if (GoalType.Value == "LevelLoot")
+            {
+                goal = (int)Object.FindObjectsOfType<ValuableObject>().Sum(v => v.dollarValueCurrent);
+            }
+            else {
+                goal = 1;
             }
 
             float threshold = RevealThreshold.Value;
 
             ValuableObject[] valuables = Object.FindObjectsOfType<ValuableObject>();
             float totalValue = valuables.Sum(v => v.dollarValueCurrent);
+            float remainingValue;
 
-            float unhauledValue = totalValue - currentHaul;
+            if (GoalType.Value == "Extractions")
+            {
+                remainingValue = director.extractionPoints - director.extractionPointsCompleted;
+            }
+            else if (TrackingMethod.Value == "Haul")
+            {
+                remainingValue = totalValue - currentHaul;
+            }
+            else
+            {
+                remainingValue = undiscoveredValue;
+            }
+
             float thresholdValue = goal * threshold;
 
-            if (unhauledValue <= thresholdValue && goal > 0)
+            if (remainingValue <= thresholdValue && goal > 0 && (director.extractionPointActive || director.extractionPointsCompleted > 0))
             {
                 ForceReveal();
             }
@@ -172,8 +208,10 @@ public class FindRemainingValuables : BaseUnityPlugin
             if ((bool)EnableLogging?.Value)
             {
                 Logger.LogInfo($"Current Haul: {currentHaul}, Goal: {goal}");
-                Logger.LogInfo($"Unhauled Value: {unhauledValue}, Threshold: {thresholdValue}");
+                Logger.LogInfo($"Missing Value: {remainingValue}, Threshold: {thresholdValue}");
             }
+
+            previousRemainingValue = Object.FindObjectsOfType<ValuableObject>().Where(v => !v.discovered).Sum(v => v.dollarValueCurrent);
         }
     }
 
@@ -183,6 +221,15 @@ public class FindRemainingValuables : BaseUnityPlugin
         hasRevealedThisScene = true;
         var valuables = Object.FindObjectsOfType<ValuableObject>();
 
+        float remainingValue;
+
+        remainingValue = Object.FindObjectsOfType<ValuableObject>().Where(v => !v.discovered).Sum(v => v.dollarValueCurrent);
+
+        if (remainingValue == 0)
+        {
+            remainingValue = previousRemainingValue;
+        }
+
         foreach (var valuable in valuables)
         {
             if (!valuable.discovered)
@@ -191,12 +238,8 @@ public class FindRemainingValuables : BaseUnityPlugin
             }
         }
 
-        float remaining = valuables
-            .Where(v => !v.discovered)
-            .Sum(v => v.dollarValueCurrent);
-
         PlayNotificationSound();
-        ShowHaulMessage($"Valuables Revealed! ${Mathf.RoundToInt(remaining)} Left!");
+        ShowHaulMessage($"${Mathf.RoundToInt(remainingValue)} of Valuables Revealed!");
         Logger.LogInfo("Revealed valuables.");
     }
 
