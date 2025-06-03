@@ -7,10 +7,11 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using TMPro;
+using Photon.Pun;
 
 namespace FindRemainingValuables;
 
-[BepInPlugin("QNCNXW8R.FindRemainingValuables", "FindRemainingValuables", "2.0.0")]
+[BepInPlugin("QNCNXW8R.FindRemainingValuables", "FindRemainingValuables", "2.0.1")]
 public class FindRemainingValuables : BaseUnityPlugin
 {
     internal static FindRemainingValuables Instance { get; private set; } = null!;
@@ -18,6 +19,7 @@ public class FindRemainingValuables : BaseUnityPlugin
     private ManualLogSource _logger => base.Logger;
     internal Harmony? Harmony { get; set; }
 
+    private bool isHostOrSingleplayer = false;
     private bool sceneReady = false;
     private bool hasRevealedThisScene = false;
     private float previousRemainingValue = -1f;
@@ -118,7 +120,8 @@ public class FindRemainingValuables : BaseUnityPlugin
         if (!sceneReady || hasRevealedThisScene)
             return;
 
-        if (EnableHotkeys.Value &&
+        if (isHostOrSingleplayer &&
+            EnableHotkeys.Value &&
             RevealKeybind.Value.MainKey != KeyCode.None &&
             RevealKeybind.Value.IsDown())
         {
@@ -136,6 +139,8 @@ public class FindRemainingValuables : BaseUnityPlugin
             RoundDirector director = Object.FindObjectOfType<RoundDirector>();
             if (director == null || !SemiFunc.RunIsLevel())
                 continue;
+
+            isHostOrSingleplayer = !GameManager.Multiplayer() || PhotonNetwork.IsMasterClient;
 
             float undiscoveredValue = Object.FindObjectsOfType<ValuableObject>().Where(v => !v.discovered).Sum(v => v.dollarValueCurrent);
             if (undiscoveredValue == 0f && previousRemainingValue > 0)
@@ -200,7 +205,7 @@ public class FindRemainingValuables : BaseUnityPlugin
 
             float thresholdValue = goal * threshold;
 
-            if (remainingValue <= thresholdValue && goal > 0 && (director.extractionPointActive || director.extractionPointsCompleted > 0))
+            if (remainingValue <= thresholdValue && goal > 0 && (director.extractionPointActive || director.extractionPointsCompleted > 0) && isHostOrSingleplayer)
             {
                 ForceReveal();
             }

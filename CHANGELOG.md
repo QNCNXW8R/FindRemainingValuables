@@ -32,3 +32,8 @@
 - With the new default configuration, valuables will be revealed when 90% of everything on the level is collected, independent of any extraction goals for a more consistent experience.
 - Fix reveal logic to show correct value of revealed valuables
 - Add some example configurations to the readme
+
+## Patch - 2.0.1
+
+- Only the host will reveal valuables
+- Other players with the mod installed will still get the notification

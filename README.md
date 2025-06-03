@@ -4,7 +4,8 @@ Tired of running in circles wondering if there are any more items left? No more!
 
 ## Features
 - When the remaining items are under a threshold, reveal every item on the map.
-- Fully configurable
+- Only the host needs to install it to reveal everything. Other players with the mod will get a notification when items get revealed.
+- Fully configurable!
 
 ## Configuration
 
