@@ -37,3 +37,7 @@
 
 - Only the host will reveal valuables
 - Other players with the mod installed will still get the notification
+
+## Patch - 2.0.2
+
+- Performance improvements

@@ -11,7 +11,7 @@ using Photon.Pun;
 
 namespace FindRemainingValuables;
 
-[BepInPlugin("QNCNXW8R.FindRemainingValuables", "FindRemainingValuables", "2.0.1")]
+[BepInPlugin("QNCNXW8R.FindRemainingValuables", "FindRemainingValuables", "2.0.2")]
 public class FindRemainingValuables : BaseUnityPlugin
 {
     internal static FindRemainingValuables Instance { get; private set; } = null!;
@@ -136,13 +136,18 @@ public class FindRemainingValuables : BaseUnityPlugin
         {
             yield return new WaitForSeconds(5f);
 
+            ValuableObject[] valuables = Object.FindObjectsOfType<ValuableObject>();
+            float totalValue = valuables.Sum(v => v.dollarValueCurrent);
+
             RoundDirector director = Object.FindObjectOfType<RoundDirector>();
             if (director == null || !SemiFunc.RunIsLevel())
                 continue;
 
             isHostOrSingleplayer = !GameManager.Multiplayer() || PhotonNetwork.IsMasterClient;
 
-            float undiscoveredValue = Object.FindObjectsOfType<ValuableObject>().Where(v => !v.discovered).Sum(v => v.dollarValueCurrent);
+            float undiscoveredValue = valuables.Where(v => !v.discovered).Sum(v => v.dollarValueCurrent);
+            previousRemainingValue = undiscoveredValue;
+
             if (undiscoveredValue == 0f && previousRemainingValue > 0)
             {
                 ForceReveal();
@@ -178,16 +183,13 @@ public class FindRemainingValuables : BaseUnityPlugin
             }
             else if (GoalType.Value == "LevelLoot")
             {
-                goal = (int)Object.FindObjectsOfType<ValuableObject>().Sum(v => v.dollarValueCurrent);
+                goal = (int)totalValue;
             }
             else {
                 goal = 1;
             }
 
             float threshold = RevealThreshold.Value;
-
-            ValuableObject[] valuables = Object.FindObjectsOfType<ValuableObject>();
-            float totalValue = valuables.Sum(v => v.dollarValueCurrent);
             float remainingValue;
 
             if (GoalType.Value == "Extractions")
@@ -208,6 +210,7 @@ public class FindRemainingValuables : BaseUnityPlugin
             if (remainingValue <= thresholdValue && goal > 0 && (director.extractionPointActive || director.extractionPointsCompleted > 0) && isHostOrSingleplayer)
             {
                 ForceReveal();
+                previousRemainingValue = 0;
             }
 
             if ((bool)EnableLogging?.Value)
@@ -215,8 +218,6 @@ public class FindRemainingValuables : BaseUnityPlugin
                 Logger.LogInfo($"Current Haul: {currentHaul}, Goal: {goal}");
                 Logger.LogInfo($"Missing Value: {remainingValue}, Threshold: {thresholdValue}");
             }
-
-            previousRemainingValue = Object.FindObjectsOfType<ValuableObject>().Where(v => !v.discovered).Sum(v => v.dollarValueCurrent);
         }
     }
 
@@ -224,11 +225,12 @@ public class FindRemainingValuables : BaseUnityPlugin
     {
         if (hasRevealedThisScene) return;
         hasRevealedThisScene = true;
-        var valuables = Object.FindObjectsOfType<ValuableObject>();
+
+        ValuableObject[] valuables = Object.FindObjectsOfType<ValuableObject>();
 
         float remainingValue;
 
-        remainingValue = Object.FindObjectsOfType<ValuableObject>().Where(v => !v.discovered).Sum(v => v.dollarValueCurrent);
+        remainingValue = valuables.Where(v => !v.discovered).Sum(v => v.dollarValueCurrent);
 
         if (remainingValue == 0)
         {
