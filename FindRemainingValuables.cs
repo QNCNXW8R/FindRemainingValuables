@@ -11,7 +11,7 @@ using Photon.Pun;
 
 namespace FindRemainingValuables;
 
-[BepInPlugin("QNCNXW8R.FindRemainingValuables", "FindRemainingValuables", "2.0.2")]
+[BepInPlugin("QNCNXW8R.FindRemainingValuables", "FindRemainingValuables", "2.1.0")]
 public class FindRemainingValuables : BaseUnityPlugin
 {
     internal static FindRemainingValuables Instance { get; private set; } = null!;
@@ -28,6 +28,7 @@ public class FindRemainingValuables : BaseUnityPlugin
     public static ConfigEntry<float>? RevealThreshold;
     public static ConfigEntry<string>? TrackingMethod;
     public static ConfigEntry<string>? GoalType;
+    public static ConfigEntry<bool>? NotificationSound;
     public static ConfigEntry<bool>? EnableHotkeys;
     public static ConfigEntry<KeyboardShortcut>? RevealKeybind;
     public static ConfigEntry<bool>? EnableLogging;
@@ -64,6 +65,13 @@ public class FindRemainingValuables : BaseUnityPlugin
                 "Which goal to use when calculating reveal threshold: ExtractionGoal, LevelGoal, LevelLoot, Extractions",
                 new AcceptableValueList<string>("ExtractionGoal", "LevelGoal", "LevelLoot", "Extractions")
             )
+        );
+
+        NotificationSound = Config.Bind(
+            "Notification",
+            "NotificationSound",
+            true,
+            "If true, enables the notification sound when the reveal is triggered"
         );
 
         EnableHotkeys = Config.Bind(
@@ -245,7 +253,10 @@ public class FindRemainingValuables : BaseUnityPlugin
             }
         }
 
-        PlayNotificationSound();
+        if (NotificationSound.Value)
+        {
+            PlayNotificationSound();
+        }
         ShowHaulMessage($"${Mathf.RoundToInt(remainingValue)} of Valuables Revealed!");
         Logger.LogInfo("Revealed valuables.");
     }

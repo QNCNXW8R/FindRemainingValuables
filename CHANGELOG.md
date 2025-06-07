@@ -41,3 +41,7 @@
 ## Patch - 2.0.2
 
 - Performance improvements
+
+## Minor Update - 2.1.0
+
+- Add setting to disable notification sound effect (default: enabled)

@@ -28,6 +28,9 @@ Here are some example configurations and the resulting behaviour:
 | 2 ~ 2.99 | N/A | Extractions | Reveal everything when there are only two extraction points left. This means immediately in the first few levels. |
 | 4 | N/A | N/A | Reveal everything immediately |
 
+### Notification
+
+- "NotificationSound": If true, enables the notification sound when the reveal is triggered (default: true)
 
 ### Controls
 
