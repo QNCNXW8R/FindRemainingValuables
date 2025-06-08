@@ -5,6 +5,7 @@ Tired of running in circles wondering if there are any more items left? No more!
 ## Features
 - When the remaining items are under a threshold, reveal every item on the map.
 - Only the host needs to install it to reveal everything. Other players with the mod will get a notification when items get revealed.
+- Optionally alert enemies when you trigger the reveal.
 - Fully configurable!
 
 ## Configuration
@@ -31,6 +32,16 @@ Here are some example configurations and the resulting behaviour:
 ### Notification
 
 - "NotificationSound": If true, enables the notification sound when the reveal is triggered (default: true)
+- "EnemiesRespond": If true, causes enemies to investigate when the reveal is triggered (default: false)
+- "AlertDifficulty": How strongly enemies respond when valuables are revealed: Investigate, Sweep, Purge (default: Investigate)
+
+#### Difficulties
+
+- Investigate: Enemies within about 2-3 rooms will investigate the active extraction point (default)
+- Sweep: Enemies within about 4-5 rooms will walk to the active extraction point
+- Purge: All enemies on the map will respawn and converge on the active extraction point
+
+Note that no response is added if the valuables are revealed before activating the first extraction, or after completing the last extraction
 
 ### Controls
 

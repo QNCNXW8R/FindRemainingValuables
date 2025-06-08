@@ -11,7 +11,7 @@ using Photon.Pun;
 
 namespace FindRemainingValuables;
 
-[BepInPlugin("QNCNXW8R.FindRemainingValuables", "FindRemainingValuables", "2.1.0")]
+[BepInPlugin("QNCNXW8R.FindRemainingValuables", "FindRemainingValuables", "2.2.0")]
 public class FindRemainingValuables : BaseUnityPlugin
 {
     internal static FindRemainingValuables Instance { get; private set; } = null!;
@@ -29,6 +29,8 @@ public class FindRemainingValuables : BaseUnityPlugin
     public static ConfigEntry<string>? TrackingMethod;
     public static ConfigEntry<string>? GoalType;
     public static ConfigEntry<bool>? NotificationSound;
+    public static ConfigEntry<bool>? EnemiesRespond;
+    public static ConfigEntry<string>? AlertDifficulty;
     public static ConfigEntry<bool>? EnableHotkeys;
     public static ConfigEntry<KeyboardShortcut>? RevealKeybind;
     public static ConfigEntry<bool>? EnableLogging;
@@ -72,6 +74,22 @@ public class FindRemainingValuables : BaseUnityPlugin
             "NotificationSound",
             true,
             "If true, enables the notification sound when the reveal is triggered"
+        );
+
+        EnemiesRespond = Config.Bind(
+            "Notification",
+            "EnemiesRespond",
+            false,
+            "If true, causes enemies to investigate when the reveal is triggered"
+        );
+
+        AlertDifficulty = Config.Bind(
+            "Notification",
+            "AlertDifficulty",
+            "Investigate",
+            new ConfigDescription(
+                "How strongly enemies respond when valuables are revealed",
+                new AcceptableValueList<string>("Investigate", "Sweep", "Purge"))
         );
 
         EnableHotkeys = Config.Bind(
@@ -157,9 +175,7 @@ public class FindRemainingValuables : BaseUnityPlugin
             previousRemainingValue = undiscoveredValue;
 
             if (undiscoveredValue == 0f && previousRemainingValue > 0)
-            {
                 ForceReveal();
-            }
 
             float currentHaul = director.currentHaul;
             int goal;
@@ -193,7 +209,8 @@ public class FindRemainingValuables : BaseUnityPlugin
             {
                 goal = (int)totalValue;
             }
-            else {
+            else
+            {
                 goal = 1;
             }
 
@@ -201,17 +218,11 @@ public class FindRemainingValuables : BaseUnityPlugin
             float remainingValue;
 
             if (GoalType.Value == "Extractions")
-            {
                 remainingValue = director.extractionPoints - director.extractionPointsCompleted;
-            }
             else if (TrackingMethod.Value == "Haul")
-            {
                 remainingValue = totalValue - currentHaul;
-            }
             else
-            {
                 remainingValue = undiscoveredValue;
-            }
 
             float thresholdValue = goal * threshold;
 
@@ -241,23 +252,22 @@ public class FindRemainingValuables : BaseUnityPlugin
         remainingValue = valuables.Where(v => !v.discovered).Sum(v => v.dollarValueCurrent);
 
         if (remainingValue == 0)
-        {
             remainingValue = previousRemainingValue;
-        }
 
         foreach (var valuable in valuables)
         {
             if (!valuable.discovered)
-            {
                 valuable.Discover(ValuableDiscoverGraphic.State.Discover);
-            }
         }
 
         if (NotificationSound.Value)
-        {
             PlayNotificationSound();
-        }
+
         ShowHaulMessage($"${Mathf.RoundToInt(remainingValue)} of Valuables Revealed!");
+
+        if (EnemiesRespond.Value)
+            AlertEnemies();
+
         Logger.LogInfo("Revealed valuables.");
     }
 
@@ -293,9 +303,7 @@ public class FindRemainingValuables : BaseUnityPlugin
         // Get the private Text field
         var textField = AccessTools.Field(typeof(HaulUI), "Text").GetValue(haulUI) as TextMeshProUGUI;
         if (textField != null)
-        {
             textField.text = message;
-        }
 
         haulUI.SemiUITextFlashColor(Color.yellow, duration);
         haulUI.SemiUISpringShakeY(2f, 4f, 1f);
@@ -308,5 +316,55 @@ public class FindRemainingValuables : BaseUnityPlugin
     {
         yield return new WaitForSeconds(delay);
         ui.enabled = true; // Reactivates Update() so it resumes showing $X / $Y
+    }
+    
+    private void AlertEnemies()
+    {
+        RoundDirector roundDirector = Object.FindObjectOfType<RoundDirector>();
+        if (roundDirector == null || !roundDirector.extractionPointActive || roundDirector.extractionPointCurrent == null)
+        {
+            Logger.LogInfo("No active extraction point to alert enemies to.");
+            return;
+        }
+
+        EnemyDirector enemyDirector = Object.FindObjectOfType<EnemyDirector>();
+        if (enemyDirector == null || enemyDirector.enemiesSpawned == null)
+        {
+            Logger.LogWarning("EnemyDirector or enemiesSpawned list not found.");
+            return;
+        }
+
+        if (AlertDifficulty?.Value == "Purge"){
+        // Spawn any unspawned enemies
+            foreach (var enemy in enemyDirector.enemiesSpawned)
+            {
+                if (enemy != null && !enemy.Spawned)
+                {
+                    enemy.Spawn();
+
+                    if ((bool)EnableLogging?.Value)
+                        Logger.LogInfo($"Respawned enemy: {enemy.name}");
+                }
+            }
+        }
+
+        // Alert all enemies to investigate the extraction point
+        Transform point = roundDirector.extractionPointCurrent.transform;
+
+        Vector3 forward = point.forward;
+        Vector3 right = point.right;
+
+        Vector3 alertPos = point.position + forward * 5f;
+
+        float radius = AlertDifficulty?.Value switch
+        {
+            "Investigate" => 40f,
+            "Sweep" => 80f,
+            "Purge" => 200f,
+            _ => 80f
+        };
+
+        enemyDirector.SetInvestigate(alertPos, radius);
+        Logger.LogInfo($"Alerted all enemies to investigate {alertPos}");
     }
 }

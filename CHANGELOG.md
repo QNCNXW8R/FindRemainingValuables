@@ -45,3 +45,12 @@
 ## Minor Update - 2.1.0
 
 - Add setting to disable notification sound effect (default: enabled)
+
+## Minor Update - 2.2.0
+
+- Add setting to let enemies respond to the notification (default: false)
+- Add difficulty setting for the enemy response:
+  - Investigate: Enemies within about 2-3 rooms will investigate the active extraction point (default)
+  - Sweep: Enemies within about 4-5 rooms will walk to the active extraction point
+  - Purge: All enemies on the map will respawn and converge on the active extraction point
+- Note that no new behaviour is added if the valuables are revealed before activating the first extraction, or after completing the last extraction
