@@ -2,8 +2,10 @@
 using BepInEx.Logging;
 using BepInEx.Configuration;
 using HarmonyLib;
+using System; // Temporary for reflection on SetInvestigate method
 using System.Collections;
 using System.Linq;
+using System.Reflection; // Temporary for reflection on SetInvestigate method
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using TMPro;
@@ -11,7 +13,7 @@ using Photon.Pun;
 
 namespace FindRemainingValuables;
 
-[BepInPlugin("QNCNXW8R.FindRemainingValuables", "FindRemainingValuables", "2.3.0")]
+[BepInPlugin("QNCNXW8R.FindRemainingValuables", "FindRemainingValuables", "2.4.0")]
 public class FindRemainingValuables : BaseUnityPlugin
 {
     internal static FindRemainingValuables Instance { get; private set; } = null!;
@@ -164,10 +166,10 @@ public class FindRemainingValuables : BaseUnityPlugin
         {
             yield return new WaitForSeconds(5f);
 
-            ValuableObject[] valuables = Object.FindObjectsOfType<ValuableObject>();
+            ValuableObject[] valuables = UnityEngine.Object.FindObjectsOfType<ValuableObject>();
             float totalValue = valuables.Sum(v => v.dollarValueCurrent);
 
-            RoundDirector director = Object.FindObjectOfType<RoundDirector>();
+            RoundDirector director = UnityEngine.Object.FindObjectOfType<RoundDirector>();
             if (director == null || !SemiFunc.RunIsLevel())
                 continue;
 
@@ -253,7 +255,7 @@ public class FindRemainingValuables : BaseUnityPlugin
         if (hasRevealedThisScene) return;
         hasRevealedThisScene = true;
 
-        ValuableObject[] valuables = Object.FindObjectsOfType<ValuableObject>();
+        ValuableObject[] valuables = UnityEngine.Object.FindObjectsOfType<ValuableObject>();
 
         float remainingValue;
 
@@ -325,10 +327,10 @@ public class FindRemainingValuables : BaseUnityPlugin
         yield return new WaitForSeconds(delay);
         ui.enabled = true; // Reactivates Update() so it resumes showing $X / $Y
     }
-    
+
     private void AlertEnemies()
     {
-        RoundDirector roundDirector = Object.FindObjectOfType<RoundDirector>();
+        RoundDirector roundDirector = UnityEngine.Object.FindObjectOfType<RoundDirector>();
         if (roundDirector == null)
         {
             Logger.LogWarning("RoundDirector not found.");
@@ -341,15 +343,16 @@ public class FindRemainingValuables : BaseUnityPlugin
             return;
         }
 
-        EnemyDirector enemyDirector = Object.FindObjectOfType<EnemyDirector>();
+        EnemyDirector enemyDirector = UnityEngine.Object.FindObjectOfType<EnemyDirector>();
         if (enemyDirector == null || enemyDirector.enemiesSpawned == null)
         {
             Logger.LogWarning("EnemyDirector or enemiesSpawned list not found.");
             return;
         }
 
-        if (AlertDifficulty?.Value == "Purge" || AlertDifficulty?.Value == "Annihilation"){
-        // Spawn any unspawned enemies
+        if (AlertDifficulty?.Value == "Purge" || AlertDifficulty?.Value == "Annihilation")
+        {
+            // Spawn any unspawned enemies
             foreach (var enemy in enemyDirector.enemiesSpawned)
             {
                 if (enemy != null && !enemy.Spawned)
@@ -382,7 +385,52 @@ public class FindRemainingValuables : BaseUnityPlugin
             _ => 80f
         };
 
-        enemyDirector.SetInvestigate(alertPos, radius);
+        bool pathFindOnly = AlertDifficulty?.Value == "Investigate";
+
+        CallSetInvestigate(enemyDirector, alertPos, radius, pathFindOnly);
+
         Logger.LogInfo($"Alerted all enemies to investigate {alertPos}");
+        }
+    
+    // Temporary method to provide the third argument in beta branch before it comes to live.
+    private void CallSetInvestigate(EnemyDirector director, Vector3 position, float radius, bool pathFindOnly)
+    {
+        Type runtimeType = director.GetType(); // Use instance-based reflection
+
+        // Try beta (3-arg) version
+        var method3 = runtimeType.GetMethod(
+            "SetInvestigate",
+            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
+            null,
+            new Type[] { typeof(Vector3), typeof(float), typeof(bool) },
+            null
+        );
+
+        if (method3 != null)
+        {
+            if ((bool)EnableLogging?.Value)
+                Logger.LogInfo("Calling SetInvestigate with 3 arguments (beta branch)");
+            method3.Invoke(director, new object[] { position, radius, pathFindOnly });
+            return;
+        }
+
+        // Try live (2-arg) version
+        var method2 = runtimeType.GetMethod(
+            "SetInvestigate",
+            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
+            null,
+            new Type[] { typeof(Vector3), typeof(float) },
+            null
+        );
+
+        if (method2 != null)
+        {
+            if ((bool)EnableLogging?.Value)
+                Logger.LogInfo("Calling SetInvestigate with 2 arguments (live branch)");
+            method2.Invoke(director, new object[] { position, radius });
+            return;
+        }
+
+        Logger.LogError("Could not find SetInvestigate method with 2 or 3 arguments at runtime.");
     }
 }
