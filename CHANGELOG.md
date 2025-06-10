@@ -54,3 +54,8 @@
   - Sweep: Enemies within about 4-5 rooms will walk to the active extraction point
   - Purge: All enemies on the map will respawn and converge on the active extraction point
 - Note that no new behaviour is added if the valuables are revealed before activating the first extraction, or after completing the last extraction
+
+## Minor Update - 2.3.0
+
+- Add difficulty setting Annihilation: All enemies on the map will respawn and converge directly upon the active extraction point. Hide or defend your loot!
+- If valuables are revealed while there is no active extraction point, the enemy alert will trigger when the next extraction point on the same level is activated.

@@ -11,7 +11,7 @@ using Photon.Pun;
 
 namespace FindRemainingValuables;
 
-[BepInPlugin("QNCNXW8R.FindRemainingValuables", "FindRemainingValuables", "2.2.0")]
+[BepInPlugin("QNCNXW8R.FindRemainingValuables", "FindRemainingValuables", "2.3.0")]
 public class FindRemainingValuables : BaseUnityPlugin
 {
     internal static FindRemainingValuables Instance { get; private set; } = null!;
@@ -23,6 +23,7 @@ public class FindRemainingValuables : BaseUnityPlugin
     private bool sceneReady = false;
     private bool hasRevealedThisScene = false;
     private float previousRemainingValue = -1f;
+    private bool awaitingActiveExtraction = false;
 
     // Config entries
     public static ConfigEntry<float>? RevealThreshold;
@@ -89,7 +90,7 @@ public class FindRemainingValuables : BaseUnityPlugin
             "Investigate",
             new ConfigDescription(
                 "How strongly enemies respond when valuables are revealed",
-                new AcceptableValueList<string>("Investigate", "Sweep", "Purge"))
+                new AcceptableValueList<string>("Investigate", "Sweep", "Purge", "Annihilation"))
         );
 
         EnableHotkeys = Config.Bind(
@@ -139,6 +140,7 @@ public class FindRemainingValuables : BaseUnityPlugin
     {
         sceneReady = true;
         hasRevealedThisScene = false;
+        awaitingActiveExtraction = false;
     }
 
     internal void Update()
@@ -170,6 +172,12 @@ public class FindRemainingValuables : BaseUnityPlugin
                 continue;
 
             isHostOrSingleplayer = !GameManager.Multiplayer() || PhotonNetwork.IsMasterClient;
+
+            if (awaitingActiveExtraction && director.extractionPointActive && director.extractionPointCurrent != null)
+            {
+                awaitingActiveExtraction = false;
+                AlertEnemies();
+            }
 
             float undiscoveredValue = valuables.Where(v => !v.discovered).Sum(v => v.dollarValueCurrent);
             previousRemainingValue = undiscoveredValue;
@@ -321,9 +329,15 @@ public class FindRemainingValuables : BaseUnityPlugin
     private void AlertEnemies()
     {
         RoundDirector roundDirector = Object.FindObjectOfType<RoundDirector>();
-        if (roundDirector == null || !roundDirector.extractionPointActive || roundDirector.extractionPointCurrent == null)
+        if (roundDirector == null)
         {
-            Logger.LogInfo("No active extraction point to alert enemies to.");
+            Logger.LogWarning("RoundDirector not found.");
+            return;
+        }
+        if (!roundDirector.extractionPointActive || roundDirector.extractionPointCurrent == null)
+        {
+            Logger.LogInfo("No active extraction point to alert enemies to. Awaiting activation");
+            awaitingActiveExtraction = true;
             return;
         }
 
@@ -334,7 +348,7 @@ public class FindRemainingValuables : BaseUnityPlugin
             return;
         }
 
-        if (AlertDifficulty?.Value == "Purge"){
+        if (AlertDifficulty?.Value == "Purge" || AlertDifficulty?.Value == "Annihilation"){
         // Spawn any unspawned enemies
             foreach (var enemy in enemyDirector.enemiesSpawned)
             {
@@ -354,13 +368,17 @@ public class FindRemainingValuables : BaseUnityPlugin
         Vector3 forward = point.forward;
         Vector3 right = point.right;
 
-        Vector3 alertPos = point.position + forward * 5f;
+        Vector3 alertPos = point.position;
+
+        if (AlertDifficulty?.Value != "Annihilation")
+            alertPos += forward * 5f;
 
         float radius = AlertDifficulty?.Value switch
         {
             "Investigate" => 40f,
             "Sweep" => 80f,
             "Purge" => 200f,
+            "Annihilation" => 200f,
             _ => 80f
         };
 

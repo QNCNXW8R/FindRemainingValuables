@@ -37,11 +37,12 @@ Here are some example configurations and the resulting behaviour:
 
 #### Difficulties
 
-- Investigate: Enemies within about 2-3 rooms will investigate the active extraction point (default)
-- Sweep: Enemies within about 4-5 rooms will walk to the active extraction point
-- Purge: All enemies on the map will respawn and converge on the active extraction point
+- Investigate: Enemies within about 2-3 rooms will investigate near the active extraction point (default)
+- Sweep: Enemies within about 4-5 rooms will walk near the active extraction point
+- Purge: All enemies on the map will respawn and converge near the active extraction point
+- Annihilation: All enemies on the map will respawn and converge directly upon the active extraction point. Hide or defend your loot!
 
-Note that no response is added if the valuables are revealed before activating the first extraction, or after completing the last extraction
+Note that no response is added if the valuables are revealed after completing the last extraction
 
 ### Controls
 
