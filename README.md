@@ -1,6 +1,6 @@
 # FindRemainingValuables
 
-\[Beta Compatible\] Tired of running in circles wondering if there are any more items left? No more! This mod adds a configurable threshold for leftover items, after which they will become visible on the map.
+\[Museum Update\] Tired of running in circles wondering if there are any more items left? No more! This mod adds a configurable threshold for leftover items, after which they will become visible on the map.
 
 ## Features
 - When the remaining items are under a threshold, reveal every item on the map.
@@ -33,7 +33,7 @@ Here are some example configurations and the resulting behaviour:
 
 - "NotificationSound": If true, enables the notification sound when the reveal is triggered (default: true)
 - "EnemiesRespond": If true, causes enemies to investigate when the reveal is triggered (default: false)
-- "AlertDifficulty": How strongly enemies respond when valuables are revealed: Investigate, Sweep, Purge (default: Investigate)
+- "AlertDifficulty": How strongly enemies respond when valuables are revealed: Investigate, Sweep, Purge, Annihilation, Dynamic (default: Investigate)
 
 #### Difficulties
 
@@ -41,6 +41,7 @@ Here are some example configurations and the resulting behaviour:
 - Sweep: Enemies within about 4-5 rooms will walk near the active extraction point
 - Purge: All enemies on the map will respawn and converge near the active extraction point
 - Annihilation: All enemies on the map will respawn and converge directly upon the active extraction point. Hide or defend your loot!
+- Dynamic: Apply a difficulty setting depending on moon phase; New Moon -> Investigate, Super Moon -> Annihilation
 
 Note that no response is added if the valuables are revealed after completing the last extraction
 

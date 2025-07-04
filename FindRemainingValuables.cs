@@ -2,10 +2,8 @@
 using BepInEx.Logging;
 using BepInEx.Configuration;
 using HarmonyLib;
-using System; // Temporary for reflection on SetInvestigate method
 using System.Collections;
 using System.Linq;
-using System.Reflection; // Temporary for reflection on SetInvestigate method
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using TMPro;
@@ -13,7 +11,7 @@ using Photon.Pun;
 
 namespace FindRemainingValuables;
 
-[BepInPlugin("QNCNXW8R.FindRemainingValuables", "FindRemainingValuables", "2.4.0")]
+[BepInPlugin("QNCNXW8R.FindRemainingValuables", "FindRemainingValuables", "2.5.0")]
 public class FindRemainingValuables : BaseUnityPlugin
 {
     internal static FindRemainingValuables Instance { get; private set; } = null!;
@@ -92,7 +90,7 @@ public class FindRemainingValuables : BaseUnityPlugin
             "Investigate",
             new ConfigDescription(
                 "How strongly enemies respond when valuables are revealed",
-                new AcceptableValueList<string>("Investigate", "Sweep", "Purge", "Annihilation"))
+                new AcceptableValueList<string>("Investigate", "Sweep", "Purge", "Annihilation", "Dynamic"))
         );
 
         EnableHotkeys = Config.Bind(
@@ -330,6 +328,23 @@ public class FindRemainingValuables : BaseUnityPlugin
 
     private void AlertEnemies()
     {
+        string difficulty;
+        if (AlertDifficulty?.Value == "Dynamic")
+        {
+            string[] diffs = { "None", "Investigate", "Sweep", "Purge", "Annihilation" };
+            difficulty = diffs[SemiFunc.MoonLevel()];
+        }
+        else
+        {
+            difficulty = AlertDifficulty?.Value;
+        }
+
+        if (difficulty == "None")
+        {
+            Logger.LogInfo("Moon Phase 0: Not alerting enemies");
+            return;
+        }
+
         RoundDirector roundDirector = UnityEngine.Object.FindObjectOfType<RoundDirector>();
         if (roundDirector == null)
         {
@@ -350,7 +365,7 @@ public class FindRemainingValuables : BaseUnityPlugin
             return;
         }
 
-        if (AlertDifficulty?.Value == "Purge" || AlertDifficulty?.Value == "Annihilation")
+        if (difficulty == "Purge" || difficulty == "Annihilation")
         {
             // Spawn any unspawned enemies
             foreach (var enemy in enemyDirector.enemiesSpawned)
@@ -373,10 +388,10 @@ public class FindRemainingValuables : BaseUnityPlugin
 
         Vector3 alertPos = point.position;
 
-        if (AlertDifficulty?.Value != "Annihilation")
+        if (difficulty != "Annihilation")
             alertPos += forward * 5f;
 
-        float radius = AlertDifficulty?.Value switch
+        float radius = difficulty switch
         {
             "Investigate" => 40f,
             "Sweep" => 80f,
@@ -385,52 +400,10 @@ public class FindRemainingValuables : BaseUnityPlugin
             _ => 80f
         };
 
-        bool pathFindOnly = AlertDifficulty?.Value == "Investigate";
+        bool pathFindOnly = difficulty == "Investigate";
 
-        CallSetInvestigate(enemyDirector, alertPos, radius, pathFindOnly);
+        enemyDirector.SetInvestigate(alertPos, radius, pathFindOnly);
 
         Logger.LogInfo($"Alerted all enemies to investigate {alertPos}");
         }
-    
-    // Temporary method to provide the third argument in beta branch before it comes to live.
-    private void CallSetInvestigate(EnemyDirector director, Vector3 position, float radius, bool pathFindOnly)
-    {
-        Type runtimeType = director.GetType(); // Use instance-based reflection
-
-        // Try beta (3-arg) version
-        var method3 = runtimeType.GetMethod(
-            "SetInvestigate",
-            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
-            null,
-            new Type[] { typeof(Vector3), typeof(float), typeof(bool) },
-            null
-        );
-
-        if (method3 != null)
-        {
-            if ((bool)EnableLogging?.Value)
-                Logger.LogInfo("Calling SetInvestigate with 3 arguments (beta branch)");
-            method3.Invoke(director, new object[] { position, radius, pathFindOnly });
-            return;
-        }
-
-        // Try live (2-arg) version
-        var method2 = runtimeType.GetMethod(
-            "SetInvestigate",
-            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
-            null,
-            new Type[] { typeof(Vector3), typeof(float) },
-            null
-        );
-
-        if (method2 != null)
-        {
-            if ((bool)EnableLogging?.Value)
-                Logger.LogInfo("Calling SetInvestigate with 2 arguments (live branch)");
-            method2.Invoke(director, new object[] { position, radius });
-            return;
-        }
-
-        Logger.LogError("Could not find SetInvestigate method with 2 or 3 arguments at runtime.");
-    }
 }

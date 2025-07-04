@@ -1,5 +1,9 @@
 # Changelog
 
+## Minor Update - 2.5.0
+- Confirm compatibility with the Museum Update
+- Add difficulty setting Dynamic: Apply a difficulty setting depending on moon phase; New Moon -> Investigate, Super Moon -> Annihilation
+
 ## Minor Update - 2.4.0
 
 - Add compatibility with the beta branch
